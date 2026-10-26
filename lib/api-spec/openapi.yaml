@@ -1,0 +1,621 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: MemeID identity registry, Solana mainnet verification, and evidence-based risk API.
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: identity
+  - name: wallet
+  - name: token
+  - name: public-api
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: API process is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /memeid/status:
+    get:
+      operationId: getMemeidStatus
+      tags: [health]
+      summary: Check mainnet RPC, storage, and database readiness
+      responses:
+        "200":
+          description: Live service readiness
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemeIDStatus"
+  /dashboard/overview:
+    get:
+      operationId: getDashboardOverview
+      tags: [identity]
+      summary: Read registry totals and recent real records
+      responses:
+        "200":
+          description: Database-backed registry overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardOverview"
+  /identities:
+    get:
+      operationId: listIdentities
+      tags: [identity]
+      summary: Search publicly available identity records
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string, maxLength: 100 }
+        - name: launchpad
+          in: query
+          required: false
+          schema: { $ref: "#/components/schemas/Launchpad" }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        "200":
+          description: Matching identity records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityList"
+    post:
+      operationId: createIdentity
+      tags: [identity]
+      summary: Create a draft identity for the authenticated wallet
+      security: [{ walletSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IdentityInput" }
+      responses:
+        "201":
+          description: Draft identity created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Identity" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /identities/{projectId}:
+    get:
+      operationId: getIdentity
+      tags: [identity]
+      summary: Read one public identity record
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 64 }
+      responses:
+        "200":
+          description: Identity record
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Identity" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /identities/{projectId}/artwork:
+    post:
+      operationId: uploadIdentityArtwork
+      tags: [identity]
+      summary: Validate and upload the creator's original artwork to public IPFS
+      security: [{ walletSession: [] }]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 64 }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: "#/components/schemas/ArtworkUploadInput" }
+      responses:
+        "200":
+          description: Artwork stored and hash recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Identity" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/DependencyUnavailable" }
+  /identities/{projectId}/metadata:
+    post:
+      operationId: publishIdentityMetadata
+      tags: [identity]
+      summary: Build, hash, store, and retrieve-check canonical identity metadata
+      security: [{ walletSession: [] }]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 64 }
+      responses:
+        "200":
+          description: Metadata is durably available
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Identity" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/DependencyUnavailable" }
+  /identities/{projectId}/mint:
+    post:
+      operationId: confirmIdentityMint
+      tags: [identity]
+      summary: Independently verify a wallet-submitted Metaplex Core mint
+      security: [{ walletSession: [] }]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MintConfirmationInput" }
+      responses:
+        "200":
+          description: Mint was independently confirmed and recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Identity" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/DependencyUnavailable" }
+  /identities/{projectId}/link-token:
+    post:
+      operationId: linkIdentityToken
+      tags: [identity, token]
+      summary: Link an independently inspected token mint to a registered identity
+      security: [{ walletSession: [] }]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TokenLinkInput" }
+      responses:
+        "200":
+          description: Token inspected and relationship evidence recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenVerification" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/DependencyUnavailable" }
+  /tokens/{mint}/verification:
+    get:
+      operationId: getTokenVerification
+      tags: [token]
+      summary: Inspect a mainnet mint and return identity evidence
+      parameters:
+        - name: mint
+          in: path
+          required: true
+          schema: { type: string, minLength: 32, maxLength: 44 }
+      responses:
+        "200":
+          description: Mainnet token and identity evidence
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenVerification" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/DependencyUnavailable" }
+  /tokens/{mint}/risk:
+    get:
+      operationId: getTokenRisk
+      tags: [token]
+      summary: Return evidence-backed risk findings or insufficient-data status
+      parameters:
+        - name: mint
+          in: path
+          required: true
+          schema: { type: string, minLength: 32, maxLength: 44 }
+      responses:
+        "200":
+          description: Risk report with sources and freshness
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RiskReport" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/DependencyUnavailable" }
+  /auth/session:
+    get:
+      operationId: getWalletSession
+      tags: [wallet]
+      summary: Return the current wallet session if authenticated
+      responses:
+        "200":
+          description: Current session state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WalletSession" }
+  /auth/nonce:
+    post:
+      operationId: createWalletChallenge
+      tags: [wallet]
+      summary: Create a unique short-lived wallet sign-in message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WalletChallengeInput" }
+      responses:
+        "200":
+          description: Message to sign
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WalletChallenge" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /auth/verify:
+    post:
+      operationId: verifyWalletSignature
+      tags: [wallet]
+      summary: Verify a signed wallet challenge and create an HTTP-only session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WalletVerifyInput" }
+      responses:
+        "200":
+          description: Authenticated wallet session
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WalletSession" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /auth/logout:
+    post:
+      operationId: logoutWallet
+      tags: [wallet]
+      summary: Revoke the current wallet session
+      security: [{ walletSession: [] }]
+      responses:
+        "204": { description: Session revoked }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /solana/rpc:
+    post:
+      operationId: proxySolanaRpc
+      tags: [token]
+      summary: Forward an allowlisted Solana mainnet JSON-RPC request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SolanaRpcRequest" }
+      responses:
+        "200":
+          description: JSON-RPC result from Helius mainnet
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SolanaRpcResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/DependencyUnavailable" }
+  /v1/identity/{projectId}:
+    get:
+      operationId: getPublicIdentity
+      tags: [public-api]
+      summary: Public developer API identity lookup
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 64 }
+      responses:
+        "200":
+          description: Public identity record
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Identity" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /v1/token/{mint}/verification:
+    get:
+      operationId: getPublicTokenVerification
+      tags: [public-api]
+      summary: Public developer API token verification lookup
+      parameters:
+        - name: mint
+          in: path
+          required: true
+          schema: { type: string, minLength: 32, maxLength: 44 }
+      responses:
+        "200":
+          description: Mainnet token and identity evidence
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenVerification" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/DependencyUnavailable" }
+  /v1/token/{mint}/risk:
+    get:
+      operationId: getPublicTokenRisk
+      tags: [public-api]
+      summary: Public developer API risk lookup
+      parameters:
+        - name: mint
+          in: path
+          required: true
+          schema: { type: string, minLength: 32, maxLength: 44 }
+      responses:
+        "200":
+          description: Evidence-backed findings or insufficient-data result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RiskReport" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/DependencyUnavailable" }
+components:
+  securitySchemes:
+    walletSession:
+      type: apiKey
+      in: cookie
+      name: memeid_session
+  responses:
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    Unauthorized:
+      description: A valid wallet session is required
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    NotFound:
+      description: Record not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    Conflict:
+      description: Conflicting identity, token, or transaction record
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    DependencyUnavailable:
+      description: Required provider is not configured or unavailable
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status: { type: string }
+      required: [status]
+    ApiError:
+      type: object
+      properties:
+        error: { type: string }
+        code: { type: string }
+      required: [error]
+    Launchpad:
+      type: string
+      enum: ["bags.fm", meteora, other, none]
+    MemeIDStatus:
+      type: object
+      properties:
+        cluster: { type: string, enum: [mainnet-beta] }
+        rpcConfigured: { type: boolean }
+        rpcHealthy: { type: boolean }
+        storageConfigured: { type: boolean }
+        databaseAvailable: { type: boolean }
+        checkedAt: { type: ["string", "null"], format: date-time }
+        dependencies:
+          type: array
+          items: { type: string }
+      required: [cluster, rpcConfigured, rpcHealthy, storageConfigured, databaseAvailable, checkedAt, dependencies]
+    DashboardOverview:
+      type: object
+      properties:
+        totalIdentities: { type: integer, minimum: 0 }
+        linkedTokens: { type: integer, minimum: 0 }
+        mintedIdentityNfts: { type: integer, minimum: 0 }
+        recentIdentities:
+          type: array
+          items: { $ref: "#/components/schemas/Identity" }
+        updatedAt: { type: string, format: date-time }
+        source: { type: string }
+      required: [totalIdentities, linkedTokens, mintedIdentityNfts, recentIdentities, updatedAt, source]
+    IdentityInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 48 }
+        symbol: { type: string, minLength: 1, maxLength: 12 }
+        description: { type: string, minLength: 1, maxLength: 1000 }
+        website: { type: string, format: uri, maxLength: 300 }
+        xProfile: { type: string, format: uri, maxLength: 300 }
+        telegram: { type: string, format: uri, maxLength: 300 }
+        discord: { type: string, format: uri, maxLength: 300 }
+        launchpad: { $ref: "#/components/schemas/Launchpad" }
+      required: [name, symbol, description, launchpad]
+    ArtworkUploadInput:
+      type: object
+      properties:
+        file: { type: string, format: binary }
+      required: [file]
+    Identity:
+      type: object
+      properties:
+        projectId: { type: string }
+        name: { type: string }
+        symbol: { type: string }
+        description: { type: string }
+        creatorWallet: { type: string }
+        website: { type: ["string", "null"] }
+        xProfile: { type: ["string", "null"] }
+        telegram: { type: ["string", "null"] }
+        discord: { type: ["string", "null"] }
+        launchpad: { $ref: "#/components/schemas/Launchpad" }
+        launchpadAttribution: { type: string, enum: [not_checked, verified, unverified] }
+        status: { type: string, enum: [draft, artwork_uploaded, metadata_published, nft_verified, token_linked] }
+        artworkUri: { type: ["string", "null"], format: uri }
+        artworkHash: { type: ["string", "null"] }
+        metadataUri: { type: ["string", "null"], format: uri }
+        metadataHash: { type: ["string", "null"] }
+        identityNftAddress: { type: ["string", "null"] }
+        mintTransactionSignature: { type: ["string", "null"] }
+        linkedTokenMint: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [projectId, name, symbol, description, creatorWallet, website, xProfile, telegram, discord, launchpad, launchpadAttribution, status, artworkUri, artworkHash, metadataUri, metadataHash, identityNftAddress, mintTransactionSignature, linkedTokenMint, createdAt, updatedAt]
+    IdentityList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Identity" }
+        total: { type: integer, minimum: 0 }
+        limit: { type: integer, minimum: 1 }
+        offset: { type: integer, minimum: 0 }
+      required: [items, total, limit, offset]
+    MintConfirmationInput:
+      type: object
+      properties:
+        assetAddress: { type: string, minLength: 32, maxLength: 44 }
+        transactionSignature: { type: string, minLength: 64, maxLength: 100 }
+      required: [assetAddress, transactionSignature]
+    TokenLinkInput:
+      type: object
+      properties:
+        mintAddress: { type: string, minLength: 32, maxLength: 44 }
+      required: [mintAddress]
+    VerificationStatuses:
+      type: object
+      properties:
+        identityRegistered: { type: boolean }
+        nftVerified: { type: boolean }
+        tokenAddressVerified: { type: boolean }
+        creatorRelationshipVerified: { type: boolean }
+        metadataIntegrityVerified: { type: boolean }
+        launchpadOriginVerified: { type: boolean }
+        riskAssessmentAvailable: { type: boolean }
+      required: [identityRegistered, nftVerified, tokenAddressVerified, creatorRelationshipVerified, metadataIntegrityVerified, launchpadOriginVerified, riskAssessmentAvailable]
+    TokenVerification:
+      type: object
+      properties:
+        mint: { type: string }
+        exists: { type: boolean }
+        tokenProgram: { type: ["string", "null"] }
+        supply: { type: ["string", "null"] }
+        decimals: { type: ["integer", "null"] }
+        mintAuthority: { type: ["string", "null"] }
+        freezeAuthority: { type: ["string", "null"] }
+        extensions:
+          type: array
+          items: { type: string }
+        identity: { anyOf: [{ $ref: "#/components/schemas/Identity" }, { type: "null" }] }
+        statuses: { $ref: "#/components/schemas/VerificationStatuses" }
+        relationshipEvidence: { type: ["string", "null"] }
+        sources:
+          type: array
+          items: { type: string }
+        lastUpdatedAt: { type: string, format: date-time }
+      required: [mint, exists, tokenProgram, supply, decimals, mintAuthority, freezeAuthority, extensions, identity, statuses, relationshipEvidence, sources, lastUpdatedAt]
+    RiskFinding:
+      type: object
+      properties:
+        id: { type: string }
+        severity: { type: string, enum: [info, low, medium, high, critical] }
+        title: { type: string }
+        explanation: { type: string }
+        evidence: { type: string }
+        source: { type: string }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        detectedAt: { type: string, format: date-time }
+      required: [id, severity, title, explanation, evidence, source, confidence, detectedAt]
+    RiskReport:
+      type: object
+      properties:
+        mint: { type: string }
+        score: { type: ["integer", "null"], minimum: 0, maximum: 100 }
+        scoreMeaning: { type: string, enum: [higher_means_more_observed_risk] }
+        availability: { type: string, enum: [available, insufficient_data] }
+        methodology: { type: string }
+        findings:
+          type: array
+          items: { $ref: "#/components/schemas/RiskFinding" }
+        sources:
+          type: array
+          items: { type: string }
+        lastUpdatedAt: { type: ["string", "null"], format: date-time }
+        warning: { type: string }
+      required: [mint, score, scoreMeaning, availability, methodology, findings, sources, lastUpdatedAt, warning]
+    WalletChallengeInput:
+      type: object
+      properties:
+        walletAddress: { type: string, minLength: 32, maxLength: 44 }
+      required: [walletAddress]
+    WalletChallenge:
+      type: object
+      properties:
+        walletAddress: { type: string }
+        nonce: { type: string }
+        domain: { type: string }
+        issuedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        message: { type: string }
+      required: [walletAddress, nonce, domain, issuedAt, expiresAt, message]
+    WalletVerifyInput:
+      type: object
+      properties:
+        walletAddress: { type: string, minLength: 32, maxLength: 44 }
+        nonce: { type: string, minLength: 16, maxLength: 128 }
+        signature: { type: string, minLength: 80, maxLength: 256 }
+        message: { type: string, minLength: 20, maxLength: 1000 }
+      required: [walletAddress, nonce, signature, message]
+    WalletSession:
+      type: object
+      properties:
+        authenticated: { type: boolean }
+        walletAddress: { type: ["string", "null"] }
+        expiresAt: { type: ["string", "null"], format: date-time }
+      required: [authenticated, walletAddress, expiresAt]
+    SolanaRpcRequest:
+      type: object
+      properties:
+        jsonrpc: { type: string, enum: ["2.0"] }
+        id: { anyOf: [{ type: string }, { type: integer }] }
+        method: { type: string, minLength: 1, maxLength: 80 }
+        params: { type: array, items: {} }
+      required: [jsonrpc, id, method]
+    SolanaRpcResponse:
+      type: object
+      properties:
+        jsonrpc: { type: string }
+        id: { anyOf: [{ type: string }, { type: integer }] }
+        result: {}
+        error: {}
+      required: [jsonrpc, id]

@@ -1,0 +1,731 @@
+PROJECT: MEMEID
+
+The Identity and Verification Layer for Solana Meme Coins
+
+Act as a senior Solana blockchain engineer, full-stack architect, security engineer, and product designer. Build MemeID as a production-oriented, mainnet-ready application with real blockchain transactions, live data, persistent storage, and genuine integrations.
+
+Do not build a mockup, landing page only, simulated dashboard, or fake blockchain explorer.
+
+The application must use real Solana mainnet data and actual on-chain transactions. Never fabricate transaction signatures, token addresses, verification badges, market prices, holder counts, liquidity figures, or risk scores.
+
+If an integration requires API keys, access permissions, or a partnership, implement the supported integration interface and clearly mark the missing dependency. Never pretend an unavailable integration is live.
+
+1. PRODUCT VISION
+
+MemeID is a Solana meme coin identity and verification protocol.
+
+Its purpose is to let meme coin creators establish a verifiable identity for their project before launching a token.
+
+Creators should be able to:
+
+* Create or upload their project’s logo.
+* Generate structured project metadata.
+* Mint the logo as an NFT on Solana mainnet.
+* Register the creator wallet.
+* Link the identity NFT to the actual token mint.
+* Publish a publicly accessible identity page.
+* Make identity and risk information available to external launchpads, explorers, and trading bots.
+
+Initial integration targets:
+
+1. Bags.fm.
+2. Meteora.
+3. Solana trading bots and analytics platforms.
+
+Do not claim official partnerships without confirmation.
+
+The platform must distinguish identity verification from financial safety. An NFT registration is not proof that a token is legitimate, safe, or profitable.
+
+2. TECHNOLOGY STACK
+
+Use a modern, maintainable TypeScript architecture.
+
+Frontend:
+
+* Next.js with App Router.
+* React and TypeScript.
+* Tailwind CSS.
+* shadcn/ui or an equivalent accessible component library.
+* Responsive layouts optimized for mobile and desktop.
+* A production-quality dark interface with restrained Solana-inspired branding.
+
+Blockchain:
+
+* Solana mainnet-beta.
+* Use a maintained Solana SDK, selecting compatible versions.
+* Use the wallet-adapter ecosystem or current compatible wallet integrations.
+* Support Phantom and Solflare where compatible.
+* Use Metaplex Core for new identity NFTs, subject to compatibility validation.
+* Use established SPL Token and Token-2022 parsing libraries for token inspection.
+
+Blockchain infrastructure:
+
+* A dedicated production Solana RPC provider.
+* WebSocket subscriptions for supported live account and transaction updates.
+* Helius or an equivalent provider for enhanced transaction information and digital asset indexing.
+* Appropriate API authentication, rate limiting, retries, and caching.
+
+Metadata and storage:
+
+* Durable decentralized storage using Arweave or IPFS through a reputable provider.
+* Verify uploaded artwork and metadata using content hashes.
+* Store searchable application records in PostgreSQL.
+* Use Redis or an equivalent cache if needed.
+
+Backend:
+
+* Next.js server routes or a dedicated TypeScript API service.
+* Zod validation.
+* Database migrations.
+* Structured logging.
+* Authentication based on wallet-signature verification.
+* Background jobs for transaction indexing and risk monitoring.
+
+Deployable architecture must support managed hosting, database migrations, monitoring, and production secrets.
+
+Do not expose private API keys or server credentials in frontend code.
+
+Consult official documentation and pin compatible dependency versions before implementing blockchain transactions.
+
+3. BRAND AND USER EXPERIENCE
+
+Brand name: MemeID.
+
+Core tagline:
+“Every meme has an identity.”
+
+Secondary tagline:
+“Verify the identity. Investigate the risk.”
+
+Design a premium Web3 interface that feels like serious infrastructure rather than a generic meme coin website.
+
+Create these primary navigation items:
+
+* Discover
+* Register Identity
+* Verify Token
+* Risk Scanner
+* API for Developers
+* Documentation
+* Dashboard
+
+Include wallet connection, network status, transaction notifications, loading states, empty states, and clear error messages.
+
+Display a visible MAINNET indicator whenever the application is connected to Solana mainnet.
+
+Never label mock or cached data as live data.
+
+4. WALLET AUTHENTICATION
+
+Implement secure wallet authentication.
+
+Requirements:
+
+* Connect supported Solana wallets.
+* Generate a unique, expiring sign-in message.
+* Include the domain, wallet address, nonce, issued-at time, and expiration.
+* Verify the wallet signature server-side.
+* Prevent nonce reuse and replay attacks.
+* Create a secure session using HTTP-only cookies.
+* Validate session expiration and logout.
+* Rate-limit authentication attempts.
+
+Connecting a wallet must not automatically authorize a transaction.
+
+Never request users’ seed phrases or private keys.
+
+Never store a user’s private key in the database, browser storage, logs, or application source code.
+
+5. PROJECT IDENTITY CREATION
+
+Build a complete project registration wizard.
+
+Fields:
+
+* Project name.
+* Token ticker.
+* Project description.
+* Logo image.
+* Optional mascot or banner.
+* Website.
+* X profile.
+* Telegram.
+* Discord.
+* Creator wallet.
+* Intended launchpad.
+* Optional expected launch date.
+
+Validate image size, file format, MIME type, and image content.
+
+Generate a unique project identifier.
+
+Calculate a cryptographic hash of the original logo and record the canonical metadata document hash.
+
+Generate a metadata document containing:
+
+* Name.
+* Symbol.
+* Description.
+* Image URI.
+* Creator wallet.
+* Project identifier.
+* Social links.
+* Schema version.
+* Artwork hash.
+* Metadata creation timestamp.
+* Registration status.
+
+Validate all user-provided URLs and sanitize text.
+
+Do not imply that a logo is original merely because its hash is unique.
+
+Provide an optional AI logo-generation integration, but keep it separate from the core identity-registration workflow.
+
+Never require an AI provider to mint an NFT from an uploaded image.
+
+6. NFT IDENTITY MINTING
+
+Use Metaplex Core for the identity NFT unless a verified interoperability requirement justifies another standard.
+
+The minting flow must:
+
+1. Validate the project metadata.
+2. Upload the image to durable storage.
+3. Upload the metadata document.
+4. Verify that both resources can be retrieved.
+5. Prepare the actual on-chain mint transaction.
+6. Display the expected network fee and any applicable platform fee.
+7. Require explicit wallet approval.
+8. Submit the signed transaction to Solana mainnet.
+9. Wait for appropriate confirmation.
+10. Verify the resulting asset using an independent blockchain read.
+11. Save the actual asset address and transaction signature.
+12. Publish the identity record only after successful verification.
+
+The creator must remain the owner of the identity NFT unless they explicitly authorize a different arrangement.
+
+Never mint an NFT using a hidden server wallet without explicit disclosure and authorization.
+
+Do not silently add royalties, transfer restrictions, or other plugins.
+
+Use the appropriate NFT standard’s metadata capabilities and verify that the NFT is compatible with the intended indexing and discovery systems.
+
+The NFT must not be presented as an official Bags.fm or Meteora credential.
+
+7. IDENTITY REGISTRY
+
+Create a persistent registry connecting each identity record to its NFT and creator wallet.
+
+Each record should contain:
+
+* Project ID.
+* Identity NFT address.
+* Creator wallet.
+* NFT owner.
+* Original image hash.
+* Original metadata hash.
+* Metadata URI.
+* Registration timestamp.
+* Transaction signature.
+* Linked token mint, if available.
+* Launchpad, if verified.
+* Verification status.
+* Record version.
+
+Where practical, anchor the registry relationship on-chain using a suitable established mechanism or a carefully audited program.
+
+Do not deploy a custom Solana program unnecessarily.
+
+If a custom registry program is required, implement a deterministic PDA-based registry with explicit authorization, account validation, and replay protection. Test it thoroughly and audit it before production use.
+
+Never claim an on-chain registry exists until the program has actually been deployed and its addresses verified.
+
+For an MVP, a signed off-chain registry with publicly verifiable evidence can be used while the on-chain registry is being developed.
+
+8. TOKEN LINKING AND VERIFICATION
+
+Create a token-linking workflow.
+
+The creator enters an actual Solana token mint address.
+
+The application must independently retrieve and verify:
+
+* Token mint account.
+* Token program ownership.
+* Token metadata, where available.
+* Mint authority.
+* Freeze authority.
+* Relevant Token-2022 extensions.
+* Actual transaction history where supported.
+* Creator wallet’s relationship to the registered identity.
+* Any supported launchpad origin information.
+
+Require the authenticated creator wallet to sign the linking request.
+
+A wallet signature proves control of that wallet, not that the signer is a particular real-world person or the original token deployer.
+
+If the relationship between the NFT creator and token creator cannot be independently established, display that limitation.
+
+Check whether the token address is already linked to a different identity.
+
+Detect duplicate registrations, conflicting claims, and suspicious reuse of project identities.
+
+Do not automatically award a verified badge merely because a creator submitted a token address.
+
+Provide separate statuses:
+
+* Identity Registered.
+* NFT Verified.
+* Token Address Verified.
+* Creator Relationship Verified.
+* Metadata Integrity Verified.
+* Launchpad Origin Verified.
+* Risk Assessment Available.
+
+Every status must have a documented verification method.
+
+9. LIVE SOLANA MAINNET DATA
+
+Use real mainnet RPC calls and a production indexing provider.
+
+Display:
+
+* Current SOL balance where requested.
+* Token mint information.
+* Token supply.
+* Decimals.
+* Mint and freeze authorities.
+* Token account and holder information where supported.
+* Relevant transaction history.
+* Identity NFT ownership.
+* Token metadata.
+* Supported liquidity pool information.
+* Available market price and volume data.
+* Latest verified risk findings.
+
+For supported data, use subscriptions or indexed events to update the interface in near real time.
+
+Show the last successful update time and data source.
+
+If the source is delayed, unavailable, or rate-limited, display a stale-data warning.
+
+Do not claim every metric updates instantly. Finalized blockchain state, provider indexing, and market-data availability have different latency characteristics.
+
+Do not use the public Solana RPC endpoint as the production backend for a high-traffic application.
+
+Use bounded retries, request deduplication, pagination, rate limits, and exponential backoff.
+
+Never replace missing values with invented zeros or random numbers.
+
+10. RUG RISK ANALYSIS
+
+Build an evidence-based token risk engine.
+
+Inspect relevant risk signals:
+
+* Mint authority status.
+* Freeze authority status.
+* Token-2022 extensions and transfer restrictions.
+* Liquidity depth.
+* Liquidity concentration and withdrawal permissions, where observable.
+* Largest token holders.
+* Concentration of supply among related accounts.
+* Developer and creator wallet activity.
+* Suspicious funding relationships.
+* Coordinated wallet activity.
+* Large or unusual sell transactions.
+* Rapid liquidity changes.
+* Metadata changes.
+* Token launch history.
+* Available pool and launchpad information.
+
+Distinguish observed facts from inferred relationships.
+
+For each finding, include:
+
+* Severity.
+* Evidence.
+* Source account or transaction.
+* Detection time.
+* Confidence.
+* Explanation.
+* Data freshness.
+
+Build a transparent risk score from 0 to 100.
+
+Define whether a higher score means greater risk or greater safety. Prefer a clear RISK SCORE where higher values mean greater observed risk.
+
+Document the scoring methodology.
+
+Do not label a token safe merely because no suspicious activity was found.
+
+Do not claim that an account is controlled by the developer unless there is reliable evidence.
+
+If the available evidence is incomplete, display “Insufficient data” rather than a misleadingly precise score.
+
+The platform must not promise guaranteed rug-pull detection or guaranteed protection from losses.
+
+11. BAGS.FM INTEGRATION
+
+Use official Bags.fm developer resources and SDKs.
+
+Build a dedicated adapter for supported Bags functionality.
+
+Requirements:
+
+* Retrieve supported launch and token information.
+* Identify tokens that can be reliably attributed to Bags.
+* Capture token addresses and transaction references.
+* Link verified launch records to MemeID identities.
+* Expose identity status to the MemeID API.
+* Monitor relevant token events where supported.
+
+Use the official Bags SDK for supported launch operations when appropriate.
+
+Do not invent SDK methods or API endpoints.
+
+Read the current official API documentation and inspect package types before implementation.
+
+Do not bypass authentication, access controls, or platform restrictions.
+
+If Bags does not provide a supported callback or webhook, implement a documented polling or indexing approach where permitted.
+
+A native integration or automatic badge inside Bags.fm requires supported platform functionality and potentially approval from Bags.fm.
+
+Until that exists, provide a working external verification page and developer API.
+
+12. METEORA INTEGRATION
+
+Use official Meteora documentation and maintained SDKs.
+
+Prioritize the supported Dynamic Bonding Curve and relevant pool interfaces.
+
+Implement:
+
+* Pool and token identification.
+* Supported pool-state reads.
+* Relevant liquidity information.
+* Bonding-curve progress where available.
+* Graduation or migration status where applicable.
+* Token-to-identity linking.
+* Transaction verification.
+* Risk indicators based on observable pool configuration.
+
+Use actual on-chain accounts and supported indexer data.
+
+Validate all program IDs, account layouts, SDK versions, and transaction requirements against current official documentation.
+
+Do not assume that all Meteora tokens use the same launch configuration or pool program.
+
+Do not claim official Meteora integration or partnership without approval.
+
+Where native platform integration is unavailable, provide an independently functioning MemeID verification layer that reads supported public blockchain data.
+
+13. PUBLIC VERIFICATION API
+
+Build a production API for launchpads, trading bots, explorers, and external applications.
+
+Example conceptual routes:
+
+GET /api/v1/identity/:projectId
+
+GET /api/v1/token/:mint/verification
+
+GET /api/v1/token/:mint/risk
+
+GET /api/v1/token/:mint/history
+
+GET /api/v1/nft/:assetAddress/verify
+
+POST /api/v1/identity/register
+
+POST /api/v1/identity/link-token
+
+GET /api/v1/health
+
+These are proposed route designs. Implement and document the actual request and response schemas.
+
+The token verification response should include:
+
+* Token mint.
+* Identity NFT address.
+* Creator wallet.
+* Verification statuses.
+* Metadata hash.
+* Identity registration timestamp.
+* Available launchpad attribution.
+* Risk findings.
+* Data freshness.
+* Source references.
+
+Never expose private information or secrets.
+
+Use API keys for rate-limited developer access, scoped permissions where needed, abuse detection, and request logging.
+
+Public verification reads should be easy for developers to integrate.
+
+Provide:
+
+* API documentation.
+* TypeScript examples.
+* Example responses.
+* Error codes.
+* Rate-limit information.
+* A developer dashboard.
+* A webhook system for supported identity or risk-status changes.
+
+14. TRADING BOT INTEGRATION
+
+Design the API so trading bots can check a token before submitting a buy transaction.
+
+A bot should be able to retrieve:
+
+* Identity verification status.
+* Token-to-NFT match.
+* Creator wallet information.
+* Latest risk findings.
+* Liquidity observations.
+* Relevant authority configuration.
+* Metadata changes.
+* Data freshness.
+
+Provide an optional pre-trade policy engine.
+
+Example policies:
+
+* Reject tokens with unverified mint addresses.
+* Warn when creator attribution is incomplete.
+* Block trading when configured critical risk conditions are met.
+* Require fresh data before executing a trade.
+* Allow users to configure their own risk thresholds.
+
+These are optional bot policies, not universal investment rules.
+
+Do not execute trades by default.
+
+Do not hold user funds.
+
+If trade execution is added later, require explicit authorization, transaction simulation where supported, transparent fees, and wallet-level transaction approval.
+
+15. DASHBOARD AND DISCOVERY
+
+Create a searchable discovery dashboard.
+
+Include:
+
+* Recently registered identities.
+* Recently linked tokens.
+* Recently verified NFTs.
+* Latest risk alerts.
+* New launches from supported sources.
+* Search by token mint.
+* Search by project name or ticker.
+* Filter by launchpad.
+* Filter by verification status.
+* Filter by risk level.
+* Sort by registration date.
+
+Display actual on-chain records and supported market information.
+
+Never rank tokens as profitable investments or imply that verification predicts price performance.
+
+Each project profile should show its NFT, metadata, creator wallet, linked token, transaction history, verification evidence, and risk findings.
+
+16. DATABASE DESIGN
+
+Use PostgreSQL with migrations and appropriate indexes.
+
+Create tables for:
+
+* Users.
+* Wallet sessions.
+* Projects.
+* Identity NFTs.
+* Token links.
+* Verification checks.
+* Risk assessments.
+* Risk findings.
+* Transaction records.
+* Launchpad attribution.
+* API clients.
+* API keys.
+* Webhook subscriptions.
+* Audit events.
+
+Use unique constraints for NFT addresses, token mint addresses where appropriate, nonces, and project identifiers.
+
+Prevent duplicate registrations and race conditions.
+
+Treat blockchain data as the source of truth for on-chain facts.
+
+Treat the database as an indexed application view, not as proof that an on-chain event occurred.
+
+Implement reconciliation jobs to detect mismatches between indexed records and blockchain state.
+
+17. SECURITY REQUIREMENTS
+
+Implement:
+
+* Server-side request validation.
+* Authentication and authorization.
+* API rate limiting.
+* Protection against replay attacks.
+* Secure session cookies.
+* CSRF protections where applicable.
+* Strict CORS policies.
+* Content Security Policy.
+* Image upload validation.
+* URL and SSRF protections.
+* Database access controls.
+* Secret management.
+* Dependency auditing.
+* Structured security logging.
+
+Do not trust user-submitted transaction signatures without independently verifying their details and status.
+
+Do not accept arbitrary RPC URLs from users on the server.
+
+Do not blindly fetch user-provided metadata URLs. Use a secure fetching service with protocol restrictions, DNS and IP validation, size limits, timeouts, and redirect protections.
+
+Use explicit transaction simulation where supported and meaningful.
+
+Never automatically sign arbitrary transactions with an application-controlled wallet.
+
+18. FEES AND MONETIZATION
+
+Implement a configurable fee system.
+
+Potential revenue:
+
+* Identity registration fee.
+* Premium project profile.
+* Advanced risk monitoring.
+* Developer API subscription.
+* Enterprise integration plans.
+
+Display all platform fees and expected network costs before the user signs a transaction.
+
+Use wallet-paid transaction fees by default.
+
+If a platform fee is introduced, disclose the recipient wallet and exact fee calculation.
+
+Never add hidden transfers to transactions.
+
+Keep fee collection disabled until the recipient address, fee configuration, and transaction flow have been validated.
+
+Do not promise that registration fees will generate meaningful revenue without adoption.
+
+19. PRODUCTION DEPLOYMENT
+
+Provide:
+
+* Environment variable template.
+* Database schema and migrations.
+* Deployment instructions.
+* Health checks.
+* Logging and monitoring.
+* Error reporting.
+* Backup and recovery procedures.
+* RPC failover strategy.
+* Rate-limit handling.
+* CI checks.
+* Dependency lockfile.
+* Production build configuration.
+
+Separate public configuration from server secrets.
+
+Use production RPC infrastructure and persistent storage.
+
+Validate that the deployment uses the intended mainnet cluster.
+
+Add a startup network check and visible network status.
+
+Never silently switch a production application to devnet.
+
+If mainnet configuration is missing, fail safely and display a configuration error.
+
+20. MAINNET RELEASE REQUIREMENTS
+
+The application is not complete merely because it builds.
+
+Before declaring the MVP production-ready, verify:
+
+1. Wallet connection works.
+2. Authentication signatures are validated server-side.
+3. Project metadata is generated correctly.
+4. Images and metadata are durably stored.
+5. NFT minting creates a real Solana mainnet asset.
+6. The actual asset address and transaction signature are recorded.
+7. NFT ownership is independently verified.
+8. Token linking checks the actual mint account.
+9. Verification statuses are based on documented evidence.
+10. Risk findings include evidence and timestamps.
+11. Bags and Meteora adapters use supported interfaces.
+12. API responses reflect actual data.
+13. Rate limits and RPC failures are handled correctly.
+14. Database records survive restarts and deployments.
+15. No fake metrics or fabricated transactions appear anywhere.
+16. Security-sensitive actions require appropriate authorization.
+17. Mainnet transaction fees are shown before signing.
+18. Error handling prevents partially completed registrations from being falsely marked successful.
+
+Test on a local validator or devnet during development and run automated tests before production release. This is a quality-control requirement, not a request to ship a devnet-only product.
+
+Do not deploy unreviewed custom programs to mainnet.
+
+Do not claim that the entire application is audited simply because tests pass.
+
+21. IMPLEMENTATION ORDER
+
+Build the project in this order:
+
+Phase 1: Repository inspection, architecture, environment validation, and database schema.
+
+Phase 2: Wallet authentication, project registration, and durable metadata storage.
+
+Phase 3: Real Metaplex Core NFT minting on Solana mainnet.
+
+Phase 4: Identity registry, token linking, and public verification pages.
+
+Phase 5: Live Solana indexing and evidence-based risk analysis.
+
+Phase 6: Bags.fm integration.
+
+Phase 7: Meteora integration.
+
+Phase 8: Public developer API and trading bot integration.
+
+Phase 9: Security hardening, monitoring, testing, and production deployment.
+
+Do not create nonfunctional buttons or placeholder endpoints that appear complete.
+
+If a phase depends on credentials or external platform approval, continue building the other functional components and clearly report the outstanding dependency.
+
+FINAL DELIVERABLES
+
+Deliver:
+
+* A complete working application.
+* A clean, responsive UI.
+* Real mainnet wallet integration.
+* Real NFT minting.
+* Real token verification.
+* Live on-chain data.
+* Evidence-based risk analysis.
+* Bags.fm and Meteora integration adapters.
+* A documented public API.
+* A database schema and migrations.
+* Environment configuration.
+* Automated tests.
+* Deployment documentation.
+* A list of verified features, unconfigured integrations, outstanding dependencies, and known limitations.
+
+FINAL DIRECTIVE:
+
+Build MemeID as real Solana infrastructure, not a visual prototype.
+
+Prioritize correctness, verifiability, security, and maintainability over flashy but nonfunctional features.
+
+Never fabricate successful transactions, partnerships, live data, verification results, or security guarantees.
+
+The final product must help creators establish verifiable project identities and help traders investigate those identities before making decisions.

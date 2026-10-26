@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "MemeID"
+description = "A Solana meme coin identity and verification platform where creators register project metadata, mint verifiable identity NFTs, link real token mints, and publish evidence-backed verification and risk information."
+version = "1.0.0"
+id = "artifacts/memeid"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24898
+
+[services.development]
+run = "pnpm --filter @workspace/memeid run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/memeid", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/memeid/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24898"
+BASE_PATH = "/"
