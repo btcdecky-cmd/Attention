@@ -1,8 +1,8 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react';
-import { ArrowDown, ArrowRight, Check, ChevronDown, Copy, ExternalLink, Fingerprint, ImagePlus, Menu, Search, ShieldCheck, Sparkles, Wallet, X } from 'lucide-react';
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { ArrowDown, ArrowRight, Check, ChevronDown, Copy, ExternalLink, Fingerprint, ImagePlus, LoaderCircle, Menu, Search, ShieldCheck, Sparkles, Wallet, X } from 'lucide-react';
 
 const navItems = [
-  ['Vision', 'vision'], ['How it works', 'how-it-works'], ['Ecosystem', 'ecosystem'], ['Roadmap', 'roadmap'], ['FAQ', 'faq'],
+  ['Vision', 'vision'], ['Registry', 'registry'], ['How it works', 'how-it-works'], ['Ecosystem', 'ecosystem'], ['Roadmap', 'roadmap'], ['FAQ', 'faq'],
 ];
 
 const faqs = [
@@ -11,7 +11,7 @@ const faqs = [
   ['Will ATTENTION create or launch tokens?', 'No. ATTENTION is focused on project identity and provenance, not token creation or token launches.'],
   ['Will identities be NFTs on Solana?', 'NFT-based registration on Solana is the intended direction. The final implementation details remain subject to development.'],
   ['Does an ATTENTION identity prove that a token is safe?', 'No. An identity record can provide information about registered artwork and metadata, but it cannot guarantee that a token or its creators are trustworthy.'],
-  ['Is the platform available now?', 'This website presents the project vision. The actual identity registration and verification application is not being built as part of this website.'],
+  ['Can I look up a token now?', 'Yes. The live registry search uses public DEX Screener profile data for market context. Attention identity verification is a separate provenance check and does not imply that a token is safe.'],
 ];
 
 function Mark({ large = false }: { large?: boolean }) {
@@ -24,6 +24,38 @@ function Button({ children, href = '#vision', secondary = false }: { children: R
 
 function Reveal({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return <div className={`reveal ${className}`}>{children}</div>;
+}
+
+type TokenProfile = { url: string; chainId: string; tokenAddress: string; icon?: string; header?: string | null; description?: string | null; links?: { type: string; label?: string; url: string }[] | null };
+
+function TokenDiscovery({ onVerify }: { onVerify: (query: string) => void }) {
+  const [profiles, setProfiles] = useState<TokenProfile[]>([]);
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('loading');
+  const [searched, setSearched] = useState<TokenProfile | null>(null);
+
+  useEffect(() => {
+    fetch('https://api.dexscreener.com/token-profiles/latest/v1')
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('Unable to load profiles')))
+      .then((data: TokenProfile[] | TokenProfile) => setProfiles(Array.isArray(data) ? data.slice(0, 6) : [data]))
+      .catch(() => setStatus('error'))
+      .finally(() => setStatus((current) => current === 'error' ? current : 'idle'));
+  }, []);
+
+  const search = async (event: FormEvent) => {
+    event.preventDefault();
+    const value = query.trim();
+    if (!value) return;
+    setStatus('loading'); setSearched(null);
+    try {
+      const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${encodeURIComponent(value)}`);
+      const data = await response.json();
+      setSearched(data.pairs?.[0]?.info ? { ...data.pairs[0].info, tokenAddress: data.pairs[0].baseToken.address, chainId: data.pairs[0].chainId, url: data.pairs[0].url } : null);
+      setStatus('idle');
+    } catch { setStatus('error'); }
+  };
+
+  return <section id="registry" className="section-pad registry-section"><div className="registry-heading"><div><p className="eyebrow">Live registry intelligence</p><h2>See what&apos;s <span>already visible.</span></h2><p className="section-intro">Search any Solana token address and pull its public profile data from DEX Screener. Attention identity records are designed to sit alongside this market context, not replace it.</p></div><div className="api-badge"><span className="api-dot" /> DEX Screener API · live</div></div><form className="registry-search" onSubmit={search}><Search size={18} /><input aria-label="Token address" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Paste a Solana token address" /><button className="button" type="submit">{status === 'loading' ? <LoaderCircle className="spin" size={15} /> : <Search size={15} />} Search</button></form>{status === 'error' && <p className="registry-note">The market feed is temporarily unavailable. Try again shortly.</p>}{searched && <article className="token-result"><img src={searched.icon || '/memeid-brand-reference.png'} alt="" /><div><span className="token-chain">{searched.chainId} · public profile</span><h3>{searched.description || 'Token profile found'}</h3><code>{searched.tokenAddress}</code></div><button className="text-link text-button" onClick={() => onVerify(searched.tokenAddress)}>Verify identity <ArrowRight size={15} /></button></article>}<div className="registry-topline"><span>Latest public profiles</span><a href="https://dexscreener.com" target="_blank" rel="noreferrer">Open DEX Screener <ExternalLink size={13} /></a></div><div className="profile-grid">{profiles.map((profile) => <article className="profile-card" key={profile.tokenAddress}><img src={profile.icon || '/memeid-brand-reference.png'} alt="" /><div className="profile-copy"><div><span>{profile.chainId}</span><a href={profile.url} target="_blank" rel="noreferrer"><ExternalLink size={13} /></a></div><p>{profile.description || 'Community token profile'}</p><code>{profile.tokenAddress.slice(0, 6)}…{profile.tokenAddress.slice(-4)}</code></div></article>)}</div>{status === 'loading' && profiles.length === 0 && <div className="registry-loading"><LoaderCircle className="spin" /> Loading public profiles…</div>}</section>;
 }
 
 function IdentityModal({ mode, onClose }: { mode: 'register' | 'verify'; onClose: () => void }) {
@@ -95,6 +127,8 @@ function App() {
       <section id="vision" className="section-pad vision-section">
         <div className="vision-layout"><Reveal><p className="eyebrow">02 · The vision</p><h2>Identity should be<br /><span>verifiable.</span></h2><p className="section-intro">ATTENTION envisions an identity layer for the meme coin ecosystem, connecting a project’s visual identity with a verifiable digital record.</p><div className="principles">{[['01', 'Originality', 'Establish a record of a project’s submitted logo and associated identity metadata.'], ['02', 'Provenance', 'Associate the record with a creator wallet and a registration timestamp.'], ['03', 'Verification', 'Create a path for people and compatible applications to inspect a project’s registered identity.']].map(([num, title, text]) => <div className="principle" key={num}><span>{num}</span><div><h3>{title}</h3><p>{text}</p></div></div>)}</div></Reveal><Reveal className="identity-visual"><div className="visual-card visual-logo"><Mark large /><span>original artwork</span></div><div className="visual-line line-one" /><div className="visual-card visual-meta"><Fingerprint size={20} /><div><b>identity record</b><small>creator · timestamp · metadata</small></div></div><div className="visual-line line-two" /><div className="visual-card visual-cert"><ShieldCheck size={22} /><div><b>publicly verifiable</b><small>Solana identity layer · proposed</small></div></div><div className="visual-caption">A conceptual identity record<br />not a live blockchain interface</div></Reveal></div>
       </section>
+
+      <TokenDiscovery onVerify={(query) => { setModal('verify'); }} />
 
       <section id="how-it-works" className="section-pad how-section"><Reveal><p className="eyebrow">03 · How it works</p><h2>From artwork to<br /><span>verifiable identity.</span></h2></Reveal><div className="timeline">{[['01', 'Create an identity', 'A creator prepares a project name, ticker, logo, description, and relevant project links.'], ['02', 'Register the artwork', 'The proposed platform records the logo and associated metadata using an appropriate decentralized storage solution.'], ['03', 'Establish provenance', 'The proposed system creates an on-chain identity record associated with the creator’s wallet and registration time.'], ['04', 'Verify the record', 'Users can inspect the registered identity and compare its recorded metadata with project information.']].map(([num, title, text]) => <Reveal key={num} className="timeline-item"><div className="timeline-number">{num}</div><div><h3>{title}</h3><p>{text}</p></div></Reveal>)}</div><p className="disclaimer"><Sparkles size={15} /> These steps describe the intended product concept. NFT registration and verification are not available through this organization website.</p></section>
 
