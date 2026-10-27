@@ -73,10 +73,12 @@
   },
   "dependencies": {
     "@metaplex-foundation/mpl-core": "1.10.0",
+    "@metaplex-foundation/mpl-token-metadata-kit": "^0.0.3",
     "@metaplex-foundation/umi": "1.6.0",
     "@metaplex-foundation/umi-bundle-defaults": "1.6.0",
     "@metaplex-foundation/umi-signer-wallet-adapters": "1.6.0",
     "@noble/hashes": "1.8.0",
+    "@solana/kit": "^8.5.0",
     "@solana/wallet-adapter-react": "0.15.40",
     "@solana/wallet-adapter-react-ui": "0.9.40",
     "@solana/wallet-standard-wallet-adapter-react": "1.1.8",
