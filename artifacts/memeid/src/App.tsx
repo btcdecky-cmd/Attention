@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ArrowDown, ArrowRight, Check, ChevronDown, ExternalLink, Fingerprint, Menu, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { ArrowDown, ArrowRight, Check, ChevronDown, Copy, ExternalLink, Fingerprint, ImagePlus, Menu, Search, ShieldCheck, Sparkles, Wallet, X } from 'lucide-react';
 
 const navItems = [
   ['Vision', 'vision'], ['How it works', 'how-it-works'], ['Ecosystem', 'ecosystem'], ['Roadmap', 'roadmap'], ['FAQ', 'faq'],
@@ -26,15 +26,48 @@ function Reveal({ children, className = '' }: { children: React.ReactNode; class
   return <div className={`reveal ${className}`}>{children}</div>;
 }
 
+function IdentityModal({ mode, onClose }: { mode: 'register' | 'verify'; onClose: () => void }) {
+  const [logo, setLogo] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({ name: '', ticker: '', description: '', wallet: '', query: '' });
+  const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
+  const handleLogo = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) setLogo(URL.createObjectURL(file));
+  };
+  const handleSubmit = (event: FormEvent) => { event.preventDefault(); setSubmitted(true); };
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.currentTarget === event.target && onClose()}>
+    <section className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button className="modal-close" onClick={onClose} aria-label="Close dialog"><X size={18} /></button>
+      {!submitted ? <>
+        <p className="eyebrow">{mode === 'register' ? 'Creator workspace' : 'Public registry'}</p>
+        <h2 id="modal-title">{mode === 'register' ? <>Register your <span>identity.</span></> : <>Verify a <span>MemeID.</span></>}</h2>
+        <p className="modal-intro">{mode === 'register' ? 'Prepare your project record before minting on Solana mainnet.' : 'Search the registry by project ID, NFT address, or creator wallet.'}</p>
+        <form onSubmit={handleSubmit}>
+          {mode === 'register' ? <>
+            <label>Project name<input required value={form.name} onChange={(event) => update('name', event.target.value)} placeholder="e.g. Moon Frog" /></label>
+            <label>Ticker<input required maxLength={8} value={form.ticker} onChange={(event) => update('ticker', event.target.value.toUpperCase())} placeholder="MOON" /></label>
+            <label>Description<textarea required rows={3} value={form.description} onChange={(event) => update('description', event.target.value)} placeholder="What makes this identity recognizable?" /></label>
+            <label className="upload-zone"><ImagePlus size={20} /><span>{logo ? 'Logo selected' : 'Add original logo artwork'}<small>PNG, JPG, GIF or WebP · max 6 MB</small></span><input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={handleLogo} /></label>
+            <label>Creator wallet<input required value={form.wallet} onChange={(event) => update('wallet', event.target.value)} placeholder="Connect wallet to continue" /></label>
+          </> : <label>Search the registry<div className="search-input"><Search size={16} /><input required value={form.query} onChange={(event) => update('query', event.target.value)} placeholder="Project ID or NFT address" /></div></label>}
+          <button className="button modal-submit" type="submit">{mode === 'register' ? <><Wallet size={15} /> Connect & continue</> : <><Search size={15} /> Check record</>}</button>
+        </form>
+      </> : <div className="success-state"><div className="success-icon"><Check /></div><p className="eyebrow">Prototype flow complete</p><h2>{mode === 'register' ? <>Identity draft <span>created.</span></> : <>Record <span>found.</span></>}</h2><p>{mode === 'register' ? 'Your artwork and metadata are ready for wallet authorization and on-chain minting.' : 'This demo confirms the verification path. A production lookup will compare the NFT metadata hash with the registered record.'}</p><button className="button" onClick={onClose}>Back to Attention <ArrowRight size={15} /></button></div>}
+    </section>
+  </div>;
+}
+
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [modal, setModal] = useState<'register' | 'verify' | null>(null);
   return <div className="site-shell">
     <header className="navbar">
       <a className="brand" href="#top" aria-label="Attention home"><Mark /><span>ATTENTION</span></a>
       <nav className={menuOpen ? 'nav-links nav-open' : 'nav-links'} aria-label="Primary navigation">
         {navItems.map(([label, id]) => <a key={id} href={`#${id}`} onClick={() => setMenuOpen(false)}>{label}</a>)}
-        <Button href="#vision">Explore the vision</Button>
+        <button className="nav-action" onClick={() => setModal('verify')}><Search size={14} /> Verify</button><button className="nav-action nav-action-primary" onClick={() => setModal('register')}><Wallet size={14} /> Register identity</button>
       </nav>
       <button className="menu-button" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button>
     </header>
@@ -46,7 +79,7 @@ function App() {
           <p className="eyebrow"><span className="eyebrow-dot" /> Solana · digital identity</p>
           <h1>Every Meme<br /><em>Deserves an Identity.</em></h1>
           <p className="hero-sub">ATTENTION is building toward a future where every meme coin project can establish a recognizable identity through its original artwork, project metadata, and a publicly verifiable record.</p>
-          <div className="hero-actions"><Button href="#vision">Explore our vision</Button><a className="text-link" href="#how-it-works">How it works <ArrowDown size={15} /></a></div>
+          <div className="hero-actions"><button className="button" onClick={() => setModal('register')}><Wallet size={15} /> Register identity</button><button className="text-link text-button" onClick={() => setModal('verify')}><Search size={15} /> Verify a record</button></div>
         </div>
         <div className="hero-art"><div className="art-orbit orbit-one" /><div className="art-orbit orbit-two" /><img src="/memeid-brand-reference.png" alt="Abstract cyan and green Attention emblem" /></div>
         <a className="scroll-cue" href="#problem"><span>Scroll to explore</span><ArrowDown size={15} /></a>
@@ -69,12 +102,13 @@ function App() {
 
       <section className="section-pad scope-section"><Reveal><p className="eyebrow">05 · The distinction</p><h2>A foundation for identity.<br /><span>Not another launchpad.</span></h2></Reveal><div className="scope-grid"><div className="scope-column is-column"><h3><Check size={18} /> ATTENTION is</h3>{['Focused on meme coin identity and artwork provenance.', 'Designed around publicly verifiable records.', 'Exploring NFT-based identity registration on Solana.', 'Intended to support future ecosystem integrations.'].map(item => <p key={item}><Check size={14} />{item}</p>)}</div><div className="scope-column not-column"><h3><X size={18} /> ATTENTION is not</h3>{['A token launchpad.', 'A meme coin creation tool.', 'A trading platform.', 'A guarantee that a token is legitimate or safe.'].map(item => <p key={item}><X size={14} />{item}</p>)}</div></div><blockquote>“An identity record can help establish provenance. It does not guarantee a project’s honesty, prevent a rug pull, or prove that a token is safe.”</blockquote></section>
 
-      <section id="roadmap" className="section-pad roadmap-section"><Reveal><p className="eyebrow">06 · Roadmap</p><h2>Building toward<br /><span>verifiable identity.</span></h2><p className="section-intro">A proposed path from a clear standard to a more open ecosystem.</p></Reveal><div className="roadmap-grid">{[['01', 'Foundation', ['Establish the ATTENTION brand', 'Define the identity and provenance model', 'Document the core product vision']], ['02', 'Protocol design', ['Define the identity metadata standard', 'Research NFT implementation options on Solana', 'Evaluate decentralized storage options']], ['03', 'Product development', ['Develop the identity registration application', 'Implement wallet-based authorization', 'Build the verification experience']], ['04', 'Ecosystem expansion', ['Explore developer tooling and API access', 'Investigate potential launchpad integrations', 'Gather feedback from creators']]].map(([num, title, items]) => <Reveal key={num}><article className="roadmap-card"><div className="phase">Phase {num} · planned</div><h3>{title}</h3>{(items as string[]).map(item => <p key={item}><span />{item}</p>)}</article></Reveal>)}</div></section>
+      <section id="roadmap" className="section-pad roadmap-section"><Reveal><p className="eyebrow">06 · Roadmap</p><h2>Building toward<br /><span>verifiable identity.</span></h2><p className="section-intro">A proposed path from a clear standard to a more open ecosystem.</p></Reveal><div className="roadmap-grid">{[['01', 'Foundation', ['Establish the ATTENTION brand', 'Define the identity and provenance model', 'Document the core product vision']], ['02', 'Protocol design', ['Define the identity metadata standard', 'Research NFT implementation options on Solana', 'Evaluate decentralized storage options']], ['03', 'Product development', ['Develop the identity registration application', 'Implement wallet-based authorization', 'Build the verification experience']], ['04', 'Ecosystem expansion', ['Explore developer tooling and API access', 'Investigate potential launchpad integrations', 'Gather feedback from creators']]].map(([num, title, items]) => <Reveal key={String(num)}><article className="roadmap-card"><div className="phase">Phase {num} · planned</div><h3>{title}</h3>{(items as string[]).map(item => <p key={String(item)}><span />{item}</p>)}</article></Reveal>)}</div></section>
 
       <section id="faq" className="section-pad faq-section"><Reveal><p className="eyebrow">07 · FAQ</p><h2>Questions worth<br /><span>asking.</span></h2></Reveal><div className="faq-list">{faqs.map(([question, answer], index) => <Reveal key={question}><div className={`faq-item ${openFaq === index ? 'faq-open' : ''}`}><button onClick={() => setOpenFaq(openFaq === index ? null : index)} aria-expanded={openFaq === index}><span>{question}</span><ChevronDown size={18} /></button>{openFaq === index && <p>{answer}</p>}</div></Reveal>)}</div></section>
 
       <section className="final-cta section-pad"><div className="cta-art"><div className="cta-ring" /><img src="/memeid-brand-reference.png" alt="Attention emblem floating above a reflective surface" /></div><div className="cta-copy"><p className="eyebrow">Stay curious</p><h2>The internet moves fast.<br /><span>Identity should last.</span></h2><p>We’re exploring a more verifiable future for meme coin identity, built around original artwork, transparent provenance, and open ecosystem participation.</p><Button href="#top">Stay connected</Button></div></section>
     </main>
+    {modal && <IdentityModal mode={modal} onClose={() => setModal(null)} />}
 
     <footer className="footer section-pad"><div className="footer-brand"><a className="brand" href="#top"><Mark /><span>ATTENTION</span></a><p>Every Meme Deserves an Identity.</p></div><div className="footer-links">{navItems.map(([label, id]) => <a key={id} href={`#${id}`}>{label}</a>)}</div><div className="footer-bottom"><span>© {new Date().getFullYear()} ATTENTION</span><span>Identity registration and verification are not provided by this organization website.</span></div></footer>
   </div>;
