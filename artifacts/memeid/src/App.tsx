@@ -61,7 +61,8 @@ function TokenDiscovery({ onVerify }: { onVerify: (query: string) => void }) {
 function IdentityModal({ mode, onClose }: { mode: 'register' | 'verify'; onClose: () => void }) {
   const [logo, setLogo] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({ name: '', ticker: '', description: '', wallet: '', query: '' });
+  const [generated, setGenerated] = useState(false);
+  const [form, setForm] = useState({ name: '', ticker: '', description: '', wallet: '', website: '', twitter: '', query: '' });
   const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
   const handleLogo = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -81,7 +82,10 @@ function IdentityModal({ mode, onClose }: { mode: 'register' | 'verify'; onClose
             <label>Ticker<input required maxLength={8} value={form.ticker} onChange={(event) => update('ticker', event.target.value.toUpperCase())} placeholder="MOON" /></label>
             <label>Description<textarea required rows={3} value={form.description} onChange={(event) => update('description', event.target.value)} placeholder="What makes this identity recognizable?" /></label>
             <label className="upload-zone"><ImagePlus size={20} /><span>{logo ? 'Logo selected' : 'Add original logo artwork'}<small>PNG, JPG, GIF or WebP · max 6 MB</small></span><input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={handleLogo} /></label>
+            <div className="studio-grid"><label>Website<input type="url" value={form.website} onChange={(event) => update('website', event.target.value)} placeholder="https://" /></label><label>X / Twitter<input value={form.twitter} onChange={(event) => update('twitter', event.target.value)} placeholder="@project" /></label></div>
             <label>Creator wallet<input required value={form.wallet} onChange={(event) => update('wallet', event.target.value)} placeholder="Connect wallet to continue" /></label>
+            <div className="identity-preview"><div className="preview-art">{logo ? <img src={logo} alt="Uploaded project artwork" /> : <><Mark large /><span>{generated ? 'GENERATED IDENTITY' : 'ARTWORK PREVIEW'}</span></>}</div><div><span className="token-chain">Draft identity · Solana mainnet</span><strong>{form.name || 'Your project name'} {form.ticker && <small>${form.ticker}</small>}</strong><p>{form.description || 'Add a description to preview the public identity record.'}</p></div></div>
+            <button type="button" className="studio-generate" onClick={() => setGenerated(true)}><Sparkles size={15} /> Generate a starter mark</button>
           </> : <label>Search the registry<div className="search-input"><Search size={16} /><input required value={form.query} onChange={(event) => update('query', event.target.value)} placeholder="Project ID or NFT address" /></div></label>}
           <button className="button modal-submit" type="submit">{mode === 'register' ? <><Wallet size={15} /> Connect & continue</> : <><Search size={15} /> Check record</>}</button>
         </form>
