@@ -61,7 +61,8 @@ function TokenDiscovery({ onVerify }: { onVerify: (query: string) => void }) {
 function IdentityModal({ mode, onClose }: { mode: 'register' | 'verify'; onClose: () => void }) {
   const [logo, setLogo] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({ name: '', ticker: '', description: '', wallet: '', query: '' });
+  const [generated, setGenerated] = useState(false);
+  const [form, setForm] = useState({ name: '', ticker: '', description: '', wallet: '', website: '', twitter: '', telegram: '', tokenAddress: '', query: '' });
   const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
   const handleLogo = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -81,11 +82,15 @@ function IdentityModal({ mode, onClose }: { mode: 'register' | 'verify'; onClose
             <label>Ticker<input required maxLength={8} value={form.ticker} onChange={(event) => update('ticker', event.target.value.toUpperCase())} placeholder="MOON" /></label>
             <label>Description<textarea required rows={3} value={form.description} onChange={(event) => update('description', event.target.value)} placeholder="What makes this identity recognizable?" /></label>
             <label className="upload-zone"><ImagePlus size={20} /><span>{logo ? 'Logo selected' : 'Add original logo artwork'}<small>PNG, JPG, GIF or WebP · max 6 MB</small></span><input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={handleLogo} /></label>
+            <div className="studio-grid"><label>Website<input type="url" value={form.website} onChange={(event) => update('website', event.target.value)} placeholder="https://" /></label><label>X / Twitter<input value={form.twitter} onChange={(event) => update('twitter', event.target.value)} placeholder="@project" /></label></div>
+            <div className="studio-grid"><label>Telegram<input value={form.telegram} onChange={(event) => update('telegram', event.target.value)} placeholder="t.me/project" /></label><label>Token address <small className="field-optional">optional</small><input value={form.tokenAddress} onChange={(event) => update('tokenAddress', event.target.value)} placeholder="Add after launch" /></label></div>
             <label>Creator wallet<input required value={form.wallet} onChange={(event) => update('wallet', event.target.value)} placeholder="Connect wallet to continue" /></label>
+            <div className="identity-preview"><div className="preview-art">{logo ? <img src={logo} alt="Uploaded project artwork" /> : <><Mark large /><span>{generated ? 'GENERATED IDENTITY' : 'ARTWORK PREVIEW'}</span></>}</div><div><span className="token-chain">Draft identity · Solana mainnet</span><strong>{form.name || 'Your project name'} {form.ticker && <small>${form.ticker}</small>}</strong><p>{form.description || 'Add a description to preview the public identity record.'}</p></div></div>
+            <button type="button" className="studio-generate" onClick={() => setGenerated(true)}><Sparkles size={15} /> Generate a starter mark</button>
           </> : <label>Search the registry<div className="search-input"><Search size={16} /><input required value={form.query} onChange={(event) => update('query', event.target.value)} placeholder="Project ID or NFT address" /></div></label>}
           <button className="button modal-submit" type="submit">{mode === 'register' ? <><Wallet size={15} /> Connect & continue</> : <><Search size={15} /> Check record</>}</button>
         </form>
-      </> : <div className="success-state"><div className="success-icon"><Check /></div><p className="eyebrow">Prototype flow complete</p><h2>{mode === 'register' ? <>Identity draft <span>created.</span></> : <>Record <span>found.</span></>}</h2><p>{mode === 'register' ? 'Your artwork and metadata are ready for wallet authorization and on-chain minting.' : 'This demo confirms the verification path. A production lookup will compare the NFT metadata hash with the registered record.'}</p><button className="button" onClick={onClose}>Back to Attention <ArrowRight size={15} /></button></div>}
+      </> : <div className="success-state"><div className="success-icon"><Check /></div><p className="eyebrow">{mode === 'register' ? 'Identity prepared' : 'Registry result'}</p><h2>{mode === 'register' ? <>Identity draft <span>created.</span></> : <>Record <span>found.</span></>}</h2>{mode === 'register' ? <><p>Your artwork and metadata are ready for wallet authorization and on-chain minting.</p><div className="record-summary"><span>Next step</span><strong>Approve the Solana mainnet transaction</strong><small>Artwork and metadata will be stored with the identity record.</small></div></> : <><p>This prototype found a matching public lookup target. In production, the verifier compares the NFT metadata hash, creator wallet, and registration timestamp.</p><div className="record-summary"><span>Verification target</span><strong>{form.query}</strong><small><ShieldCheck size={13} /> Metadata integrity check · ready</small></div></>}<button className="button" onClick={onClose}>Back to Attention <ArrowRight size={15} /></button></div>}
     </section>
   </div>;
 }
